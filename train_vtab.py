@@ -44,12 +44,12 @@ def train(model, dl, opt, scheduler, epoch):
             os.system('mkdir -p ' + args.model_dir + '/weights')
         if ep % 5 == 4:
             acc = val(model, val_loader)
-            if acc[0] >= config['best_acc']:
-                config['best_acc'] = acc[0]
+            if acc >= config['best_acc']:
+                config['best_acc'] = acc
                 config['best_epoch'] = ep + 1
                 torch.save(model.state_dict(), args.model_dir + '/weights/' + args.data_type + '.pth')
                 with open(args.model_dir + '/weights/' + args.data_type + '.log', 'w') as f:
-                    f.write(str(ep + 1) + ' ' + str(acc[0]))
+                    f.write(str(ep + 1) + ' ' + str(acc))
             print('best_epoch:', config['best_epoch'], 'best_acc:', config['best_acc'])
     torch.save(model.state_dict(), args.model_dir + '/weights/' + args.data_type + 'latest.pth')
 
@@ -59,19 +59,14 @@ def val(model, dl):
     model.eval()
     model = model.to(device)
     loop = tqdm(dl, desc='Val:')
-    acc1 = Accuracy()
-    acc2 = Accuracy()
     acc = Accuracy()
     for i, data in enumerate(loop):
         with torch.no_grad():
             img, label = data[0].to(device), data[1].to(device)
             output = model(img)
-            outputs = [output[0].data, output[1].data]
-            acc1.update(outputs[0].argmax(dim=1).view(-1), label)
-            acc2.update(outputs[1].argmax(dim=1).view(-1), label)
-            acc.update((outputs[0] + outputs[1]).argmax(dim=1).view(-1), label)
+            acc.update(output.argmax(dim=1).view(-1), label)
     print('acc:', acc.result())
-    return [acc.result(), acc1.result(), acc2.result()]
+    return acc.result()
 
 
 # 计算loss
